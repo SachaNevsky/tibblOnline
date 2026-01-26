@@ -1,4 +1,23 @@
+// ./app/routes/home.tsx
+import type { Route } from "./+types/home";
 import { useState, useEffect } from 'react';
+
+export function meta({ }: Route.MetaArgs) {
+	return [
+		{ title: "TIBBL Online" },
+		{ name: "description", content: "TIBBL tangible programming online" }
+	];
+}
+
+export function links() {
+	return [
+		{
+			rel: "icon",
+			href: "/tibblOnline/favicon.ico",
+			type: "image/ico",
+		},
+	];
+}
 
 const GITHUB_BASE = 'https://raw.githubusercontent.com/armbennett/tangible-11ty/main';
 
