@@ -50,7 +50,7 @@ const TILE_INFO: Record<string, TileInfo> = {
 	'loop': { name: 'Loop', command: 'loop', rotatable: true, rotationValues: ['1', '2', '3', '4', '5', '6', '7', '8'] },
 	'play': { name: 'Play', command: 'play', rotatable: true, rotationValues: ['1', '2', '3', '4', '5', '6', '7', '8'] },
 	'playx': { name: 'Play X', command: 'play x', rotatable: false },
-	'random': { name: 'X = Random', command: 'x = random', rotatable: false },
+	'random': { name: 'X=Random', command: 'x = random', rotatable: false },
 	'thread1': { name: 'Thread 1', command: 'thread 1', rotatable: false },
 	'thread2': { name: 'Thread 2', command: 'thread 2', rotatable: false },
 	'thread3': { name: 'Thread 3', command: 'thread 3', rotatable: false },
@@ -96,6 +96,7 @@ export default function Home() {
 	const [isRunning, setIsRunning] = useState(false);
 	const [threadOutputs, setThreadOutputs] = useState<string[]>(['', '', '']);
 	const [soundSets, setSoundSets] = useState<string[]>(['Numbers', 'Mystery', 'Notifications']);
+	const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
 
 	useEffect(() => {
 		const loadScripts = async () => {
@@ -165,6 +166,65 @@ export default function Home() {
 			setGrid(newGrid);
 			setDraggedTile(null);
 		}
+	};
+
+	// Touch handlers for mobile/tablet
+	const handleTouchStart = (e: React.TouchEvent, tile: string, fromGrid = false, gridPos?: { row: number; col: number }) => {
+		const touch = e.touches[0];
+		setTouchStartPos({ x: touch.clientX, y: touch.clientY });
+		setDraggedTile({ type: tile, fromGrid, gridPos });
+
+		// Prevent scrolling while dragging
+		e.preventDefault();
+	};
+
+	const handleTouchMove = (e: React.TouchEvent) => {
+		if (!draggedTile || !touchStartPos) return;
+
+		// Prevent scrolling while dragging
+		e.preventDefault();
+	};
+
+	const handleTouchEnd = (e: React.TouchEvent) => {
+		if (!draggedTile || !touchStartPos) return;
+
+		const touch = e.changedTouches[0];
+		const element = document.elementFromPoint(touch.clientX, touch.clientY);
+
+		if (element) {
+			// Check if dropped on grid cell
+			const gridCell = element.closest('[data-grid-cell]');
+			if (gridCell) {
+				const rowIdx = parseInt(gridCell.getAttribute('data-row') || '0');
+				const colIdx = parseInt(gridCell.getAttribute('data-col') || '0');
+
+				const newGrid = grid.map(row => [...row]);
+
+				// If dragging from grid, remove from original position
+				if (draggedTile.fromGrid && draggedTile.gridPos) {
+					const originalTile = grid[draggedTile.gridPos.row][draggedTile.gridPos.col];
+					newGrid[draggedTile.gridPos.row][draggedTile.gridPos.col] = null;
+					// Place tile at new position (overwrite existing), preserving rotation
+					newGrid[rowIdx][colIdx] = originalTile;
+				} else {
+					// New tile from palette, start with rotation 0
+					newGrid[rowIdx][colIdx] = { type: draggedTile.type, rotation: 0 };
+				}
+
+				setGrid(newGrid);
+			}
+			// Check if dropped on palette
+			else if (element.closest('[data-palette]')) {
+				if (draggedTile.fromGrid && draggedTile.gridPos) {
+					const newGrid = grid.map(row => [...row]);
+					newGrid[draggedTile.gridPos.row][draggedTile.gridPos.col] = null;
+					setGrid(newGrid);
+				}
+			}
+		}
+
+		setDraggedTile(null);
+		setTouchStartPos(null);
 	};
 
 	const handleRotateTile = (rowIdx: number, colIdx: number) => {
@@ -367,10 +427,10 @@ export default function Home() {
 	const hasOutput = threadOutputs.some(output => output.length > 0);
 
 	return (
-		<div className="min-h-screen bg-gray-900 text-white p-8 flex items-center justify-center">
-			<div className="w-full h-[90vh] flex flex-col">
-				<div className="grid grid-cols-4 items-center mb-6 shrink-0 gap-8">
-					<h1 className="inline-flex items-center gap-2 text-4xl font-bold">
+		<div className="h-screen bg-gray-900 text-white flex items-center justify-center overflow-hidden">
+			<div className="w-full h-full flex flex-col p-2 sm:p-4 lg:p-8">
+				<div className="grid grid-cols-1 lg:grid-cols-4 items-center mb-2 sm:mb-4 lg:mb-6 shrink-0 gap-2 sm:gap-4 lg:gap-8">
+					<h1 className="inline-flex items-center gap-2 text-2xl sm:text-3xl lg:text-4xl font-bold">
 						<img
 							src="tibbl-logo.png"
 							alt="Tibbl logo"
@@ -379,13 +439,13 @@ export default function Home() {
 						Online
 					</h1>
 
-					<div className="col-start-4 flex items-center gap-4 w-full">
+					<div className="lg:col-start-4 flex items-center gap-2 sm:gap-4 w-full">
 						<div className="flex flex-col w-full">
-							<label className="text-white font-bold mb-1">Thread 1:</label>
+							<label className="text-white font-bold mb-1 text-xs sm:text-sm">Thread 1:</label>
 							<select
 								value={soundSets[0]}
 								onChange={(e) => handleSoundSetChange(0, e.target.value)}
-								className="bg-gray-800 text-white px-3 py-1 rounded border border-gray-700 focus:outline-none focus:border-blue-500"
+								className="bg-gray-800 text-white px-2 py-1 text-xs sm:text-sm rounded border border-gray-700 focus:outline-none focus:border-blue-500"
 							>
 								{SOUND_SETS.map(set => (
 									<option key={set.value} value={set.value}>{set.label}</option>
@@ -394,11 +454,11 @@ export default function Home() {
 						</div>
 
 						<div className="flex flex-col w-full">
-							<label className="text-white font-bold mb-1">Thread 2:</label>
+							<label className="text-white font-bold mb-1 text-xs sm:text-sm">Thread 2:</label>
 							<select
 								value={soundSets[1]}
 								onChange={(e) => handleSoundSetChange(1, e.target.value)}
-								className="bg-gray-800 text-white px-3 py-1 rounded border border-gray-700 focus:outline-none focus:border-blue-500"
+								className="bg-gray-800 text-white px-2 py-1 text-xs sm:text-sm rounded border border-gray-700 focus:outline-none focus:border-blue-500"
 							>
 								{SOUND_SETS.map(set => (
 									<option key={set.value} value={set.value}>{set.label}</option>
@@ -407,11 +467,11 @@ export default function Home() {
 						</div>
 
 						<div className="flex flex-col w-full">
-							<label className="text-white font-bold mb-1">Thread 3:</label>
+							<label className="text-white font-bold mb-1 text-xs sm:text-sm">Thread 3:</label>
 							<select
 								value={soundSets[2]}
 								onChange={(e) => handleSoundSetChange(2, e.target.value)}
-								className="bg-gray-800 text-white px-3 py-1 rounded border border-gray-700 focus:outline-none focus:border-blue-500"
+								className="bg-gray-800 text-white px-2 py-1 text-xs sm:text-sm rounded border border-gray-700 focus:outline-none focus:border-blue-500"
 							>
 								{SOUND_SETS.map(set => (
 									<option key={set.value} value={set.value}>{set.label}</option>
@@ -421,7 +481,8 @@ export default function Home() {
 					</div>
 				</div>
 
-				<div className="grid grid-cols-1 lg:grid-cols-4 gap-8 flex-1 min-h-0">
+				{/* Desktop layout (horizontal) */}
+				<div className="hidden lg:grid lg:grid-cols-4 gap-8 flex-1 min-h-0">
 					{/* Tile Palette */}
 					<div className="lg:col-span-1 flex flex-col min-h-0">
 						<div
@@ -537,6 +598,143 @@ export default function Home() {
 							</div>
 						) : (
 							<div className="bg-gray-800 p-4 rounded-lg flex-1 overflow-auto min-h-0" />
+						)}
+					</div>
+				</div>
+
+				{/* Mobile/Tablet layout (vertical) */}
+				<div className="lg:hidden flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
+					{/* Top section: Palette and Grid side by side */}
+					<div className="grid grid-cols-2 gap-2 sm:gap-4 flex-1 min-h-0">
+						{/* Tile Palette */}
+						<div className="flex flex-col min-h-0">
+							<div
+								data-palette="true"
+								className="bg-gray-800 p-2 sm:p-3 rounded-lg space-y-1.5 sm:space-y-2 overflow-auto h-full"
+								onDrop={handleDropOnPalette}
+								onDragOver={(e) => e.preventDefault()}
+							>
+								{TILE_ROWS.map((row, rowIdx) => (
+									<div key={rowIdx} className="grid gap-1.5 sm:gap-2" style={{ gridTemplateColumns: `repeat(${4}, minmax(0, 1fr))` }}>
+										{row.map((tile) => (
+											<div
+												key={tile}
+												draggable
+												onDragStart={(e) => handleDragStart(e, tile)}
+												onTouchStart={(e) => handleTouchStart(e, tile)}
+												onTouchMove={handleTouchMove}
+												onTouchEnd={handleTouchEnd}
+												className="cursor-grab active:cursor-grabbing bg-gray-700 rounded p-1 hover:bg-gray-600 transition select-none touch-none"
+											>
+												<img
+													src={`${GITHUB_BASE}/assets/demo-files/tiles/${tile}.png`}
+													alt={tile}
+													className="w-full h-auto mb-0.5 pointer-events-none"
+												/>
+												<div className="text-[0.5rem] sm:text-xs text-center text-gray-300 leading-tight">{TILE_INFO[tile].name}</div>
+											</div>
+										))}
+									</div>
+								))}
+							</div>
+						</div>
+
+						{/* Programming Grid */}
+						<div className="flex flex-col min-h-0">
+							<div className="bg-gray-800 p-2 sm:p-3 rounded-lg h-full flex items-center justify-center">
+								<div className="grid grid-cols-5 gap-1 sm:gap-1.5 h-auto w-full" style={{ aspectRatio: '5/7' }}>
+									{grid.map((row, rowIdx) => (
+										row.map((cell, colIdx) => (
+											<div
+												key={`${rowIdx}-${colIdx}`}
+												data-grid-cell="true"
+												data-row={rowIdx}
+												data-col={colIdx}
+												onDragOver={handleDragOver}
+												onDrop={(e) => handleDrop(e, rowIdx, colIdx)}
+												onClick={() => cell && handleRotateTile(rowIdx, colIdx)}
+												className={`border border-dashed rounded flex flex-col items-center justify-center aspect-square ${cell
+													? `border-green-500 bg-gray-700 ${TILE_INFO[cell.type].rotatable ? 'cursor-pointer hover:bg-gray-600' : 'cursor-move'}`
+													: 'border-gray-600 bg-gray-750'
+													}`}
+											>
+												{cell && (
+													<>
+														<div
+															className="w-full h-full flex items-center justify-center p-0.5 select-none flex-col"
+															draggable
+															onDragStart={(e) => {
+																e.stopPropagation();
+																handleDragStart(e, cell.type, true, { row: rowIdx, col: colIdx });
+															}}
+															onTouchStart={(e) => handleTouchStart(e, cell.type, true, { row: rowIdx, col: colIdx })}
+															onTouchMove={handleTouchMove}
+															onTouchEnd={handleTouchEnd}
+														>
+															<img
+																src={`${GITHUB_BASE}/assets/demo-files/tiles/${cell.type}.png`}
+																alt={cell.type}
+																className="w-full h-full object-contain pointer-events-none"
+															/>
+															<div className="text-[0.5rem] sm:text-xs text-center text-gray-300 leading-tight">{getTileLabel(cell)}</div>
+														</div>
+													</>
+												)}
+											</div>
+										))
+									))}
+								</div>
+							</div>
+						</div>
+					</div>
+
+					{/* Bottom section: Controls and Code */}
+					<div className="flex flex-col min-h-0 shrink-0" style={{ height: '35%' }}>
+						{/* Buttons */}
+						<div className="grid grid-cols-3 gap-2 mb-2 shrink-0">
+							<button
+								onClick={runCode}
+								className="px-2 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 rounded transition font-semibold text-xs sm:text-sm"
+							>
+								Run Code
+							</button>
+							<button
+								onClick={stopCode}
+								className="px-2 py-1.5 sm:py-2 bg-yellow-600 hover:bg-yellow-700 rounded transition font-semibold text-xs sm:text-sm"
+							>
+								Stop
+							</button>
+							<button
+								onClick={clearGrid}
+								className="px-2 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 rounded transition text-xs sm:text-sm"
+							>
+								Clear Grid
+							</button>
+						</div>
+
+						{/* Output */}
+						{hasOutput ? (
+							<div className="bg-gray-800 p-2 sm:p-3 rounded-lg flex-1 overflow-auto min-h-0">
+								<div className="flex items-center gap-2 mb-1">
+									<h3 className="text-sm sm:text-base font-semibold">Code:</h3>
+									{isRunning && (
+										<span className="text-xs sm:text-sm text-green-400 font-semibold">Running...</span>
+									)}
+								</div>
+								{threadOutputs.map((output, idx) => (
+									<div key={idx} className="sm:pb-3">
+										{output && (
+											<pre
+												className="text-xs sm:text-sm text-gray-300 font-mono whitespace-pre-wrap wrap-break-word sm:columns-5 gap-6"
+											>
+												{output}
+											</pre>
+										)}
+									</div>
+								))}
+							</div>
+						) : (
+							<div className="bg-gray-800 p-2 sm:p-3 rounded-lg flex-1 overflow-auto min-h-0" />
 						)}
 					</div>
 				</div>
