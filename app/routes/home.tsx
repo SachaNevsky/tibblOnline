@@ -430,15 +430,17 @@ export default function Home() {
 		<div className="h-screen bg-gray-900 text-white flex items-center justify-center overflow-hidden">
 			<div className="w-full h-full flex flex-col p-2 sm:p-4 lg:p-8">
 				<div className="grid grid-cols-1 lg:grid-cols-4 items-center mb-2 sm:mb-4 lg:mb-6 shrink-0 gap-2 sm:gap-4 lg:gap-8">
-					<h1 className="inline-flex items-center gap-2 text-2xl sm:text-3xl lg:text-4xl font-bold">
-						<img
-							src="tibbl-logo.png"
-							alt="Tibbl logo"
-							className="h-[1em] w-auto"
-						/>
-						Online
-					</h1>
-
+					<div className="flex gap-2">
+						<h1 className="inline-flex items-center gap-2 text-2xl sm:text-3xl lg:text-4xl font-bold">
+							<img
+								src="tibbl-logo.png"
+								alt="Tibbl logo"
+								className="h-[1em] w-auto"
+							/>
+							Online
+						</h1>
+						<a href="/tibblOnline/reverse" className="pl-4 inline-flex items-center gap-2 text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-500">Go to reverse</a>
+					</div>
 					<div className="lg:col-start-4 flex items-center gap-2 sm:gap-4 w-full">
 						<div className="flex flex-col w-full">
 							<label className="text-white font-bold mb-1 text-xs sm:text-sm">Thread 1:</label>
